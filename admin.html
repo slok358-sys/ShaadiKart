@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShaadiKart Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #f8fafc; }
+        .heading-display { font-family: 'Playfair Display', serif; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .gradient-bg { background: linear-gradient(135deg, #ff1744 0%, #e91e63 100%); }
+        .sidebar-link.active { background: rgba(255, 23, 68, 0.1); color: #ff1744; border-right: 4px solid #ff1744; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-confirmed { background: #d1fae5; color: #065f46; }
+        .status-cancelled { background: #fee2e2; color: #991b1b; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- LOGIN OVERLAY -->
+    <div id="login-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-md">
+        <div class="glass p-10 rounded-3xl shadow-2xl w-full max-w-md animate-fade">
+            <div class="text-center mb-8">
+                <div class="text-5xl mb-4">🔐</div>
+                <h1 class="heading-display text-3xl font-bold text-gray-900">Admin Login</h1>
+                <p class="text-gray-500">Access your wedding empire</p>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="admin-email" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition" placeholder="admin@shaadikart.com" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="admin-password" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition" placeholder="••••••••" required>
+                </div>
+                <p id="login-error" class="text-red-500 text-sm hidden"></p>
+                <button type="submit" class="w-full gradient-bg text-white font-bold py-4 rounded-xl shadow-lg hover:opacity-90 transition transform hover:-translate-y-1">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD (HIDDEN UNTIL AUTH) -->
+    <div id="dashboard" class="hidden flex h-screen overflow-hidden">
+        <!-- SIDEBAR -->
+        <aside class="w-64 glass border-r border-gray-200 flex flex-col">
+            <div class="p-8 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">💒</span>
+                    <span class="heading-display text-xl font-bold text-red-600">Admin</span>
+                </div>
+            </div>
+            <nav class="flex-1 py-8">
+                <a href="#" class="sidebar-link active flex items-center gap-4 px-8 py-4 font-medium transition">
+                    <span>📊</span> Dashboard
+                </a>
+                <a href="#" class="sidebar-link flex items-center gap-4 px-8 py-4 text-gray-500 hover:bg-gray-50 transition">
+                    <span>💌</span> Bookings
+                </a>
+                <a href="#" class="sidebar-link flex items-center gap-4 px-8 py-4 text-gray-500 hover:bg-gray-50 transition">
+                    <span>💐</span> Services
+                </a>
+                <a href="#" class="sidebar-link flex items-center gap-4 px-8 py-4 text-gray-500 hover:bg-gray-50 transition">
+                    <span>👥</span> Users
+                </a>
+            </nav>
+            <div class="p-8 border-t border-gray-100">
+                <button onclick="logout()" class="flex items-center gap-4 text-gray-400 hover:text-red-600 transition font-medium">
+                    <span>🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-10">
+            <header class="flex justify-between items-center mb-12">
+                <div>
+                    <h2 class="heading-display text-4xl font-bold text-gray-900">Dashboard</h2>
+                    <p class="text-gray-500">Welcome back, Admin</p>
+                </div>
+                <div class="flex gap-4">
+                    <button class="bg-white px-6 py-2 rounded-xl shadow-sm border border-gray-200 text-sm font-medium hover:bg-gray-50 transition">Export CSV</button>
+                    <button class="gradient-bg text-white px-6 py-2 rounded-xl shadow-sm text-sm font-medium hover:opacity-90 transition">Refresh Data</button>
+                </div>
+            </header>
+
+            <!-- STATS CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 animate-fade" style="animation-delay: 0.1s">
+                    <p class="text-gray-400 text-sm font-medium mb-2 uppercase tracking-wider">Total Sales</p>
+                    <h3 id="stat-sales" class="text-3xl font-bold text-gray-900">₹0</h3>
+                    <p class="text-green-500 text-xs mt-2 font-bold">↑ 12% vs last month</p>
+                </div>
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 animate-fade" style="animation-delay: 0.2s">
+                    <p class="text-gray-400 text-sm font-medium mb-2 uppercase tracking-wider">Total Bookings</p>
+                    <h3 id="stat-bookings" class="text-3xl font-bold text-gray-900">0</h3>
+                    <p class="text-blue-500 text-xs mt-2 font-bold">New requests today</p>
+                </div>
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 animate-fade" style="animation-delay: 0.3s">
+                    <p class="text-gray-400 text-sm font-medium mb-2 uppercase tracking-wider">Avg. Order</p>
+                    <h3 id="stat-avg" class="text-3xl font-bold text-gray-900">₹0</h3>
+                    <p class="text-purple-500 text-xs mt-2 font-bold">Premium tier active</p>
+                </div>
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 animate-fade" style="animation-delay: 0.4s">
+                    <p class="text-gray-400 text-sm font-medium mb-2 uppercase tracking-wider">Pending</p>
+                    <h3 id="stat-pending" class="text-3xl font-bold text-gray-900">0</h3>
+                    <p class="text-orange-500 text-xs mt-2 font-bold italic">Needs attention</p>
+                </div>
+            </div>
+
+            <!-- BOOKINGS TABLE -->
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden animate-fade" style="animation-delay: 0.5s">
+                <div class="p-8 border-b border-gray-100 flex justify-between items-center">
+                    <h3 class="font-bold text-xl text-gray-900">Recent Booking Requests</h3>
+                    <input type="text" placeholder="Search customer..." class="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-400 text-xs uppercase tracking-widest font-bold">
+                                <th class="px-8 py-4">Customer</th>
+                                <th class="px-8 py-4">Event Date</th>
+                                <th class="px-8 py-4">Services</th>
+                                <th class="px-8 py-4">Amount</th>
+                                <th class="px-8 py-4">Status</th>
+                                <th class="px-8 py-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookings-list" class="divide-y divide-gray-100">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, orderBy, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4CAUBI-I2rFbeif20exsWa3Y62L1uyU0",
+            authDomain: "shaadikart-9b8b1.firebaseapp.com",
+            projectId: "shaadikart-9b8b1",
+            storageBucket: "shaadikart-9b8b1.firebasestorage.app",
+            messagingSenderId: "818273700917",
+            appId: "1:818273700917:web:48aa03dd3fb4d83d0e757c",
+            measurementId: "G-9ZQZJDMZS3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // LOGIN FLOW
+        const loginForm = document.getElementById('login-form');
+        const loginOverlay = document.getElementById('login-overlay');
+        const dashboard = document.getElementById('dashboard');
+        const errorMsg = document.getElementById('login-error');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('admin-email').value;
+            const pass = document.getElementById('admin-password').value;
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (err) {
+                errorMsg.textContent = "Invalid admin credentials.";
+                errorMsg.classList.remove('hidden');
+            }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginOverlay.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+                loadData();
+            } else {
+                loginOverlay.classList.remove('hidden');
+                dashboard.classList.add('hidden');
+            }
+        });
+
+        window.logout = () => signOut(auth);
+
+        // DATA LOADING
+        async function loadData() {
+            const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
+            const snapshot = await getDocs(q);
+            
+            let totalSales = 0;
+            let pendingCount = 0;
+            const list = document.getElementById('bookings-list');
+            list.innerHTML = '';
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const id = docSnap.id;
+                totalSales += data.total || 0;
+                if (data.status === 'Pending') pendingCount++;
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition';
+                row.innerHTML = `
+                    <td class="px-8 py-6">
+                        <div class="font-bold text-gray-900">${data.customerName}</div>
+                        <div class="text-xs text-gray-400">${data.customerEmail}</div>
+                    </td>
+                    <td class="px-8 py-6 text-sm text-gray-600">${data.eventDate}</td>
+                    <td class="px-8 py-6 text-sm text-gray-600">${data.items ? data.items.length : 0} services</td>
+                    <td class="px-8 py-6 font-bold text-gray-900">₹${(data.total || 0).toLocaleString()}</td>
+                    <td class="px-8 py-6">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold status-${(data.status || 'pending').toLowerCase()}">
+                            ${data.status || 'Pending'}
+                        </span>
+                    </td>
+                    <td class="px-8 py-6">
+                        <select onchange="updateStatus('${id}', this.value)" class="bg-transparent border-b-2 border-gray-100 text-xs font-bold outline-none focus:border-red-500 cursor-pointer">
+                            <option value="Pending" ${data.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Confirmed" ${data.status === 'Confirmed' ? 'selected' : ''}>Confirm</option>
+                            <option value="Cancelled" ${data.status === 'Cancelled' ? 'selected' : ''}>Cancel</option>
+                        </select>
+                    </td>
+                `;
+                list.appendChild(row);
+            });
+
+            // Update Stats
+            document.getElementById('stat-sales').textContent = `₹${totalSales.toLocaleString()}`;
+            document.getElementById('stat-bookings').textContent = snapshot.size;
+            document.getElementById('stat-pending').textContent = pendingCount;
+            document.getElementById('stat-avg').textContent = snapshot.size ? `₹${Math.round(totalSales / snapshot.size).toLocaleString()}` : '₹0';
+        }
+
+        window.updateStatus = async (bookingId, newStatus) => {
+            try {
+                const bookingRef = doc(db, "bookings", bookingId);
+                await updateDoc(bookingRef, { status: newStatus });
+                loadData(); // Reload UI
+            } catch (err) {
+                console.error("Error updating status:", err);
+                alert("Failed to update status.");
+            }
+        };
+    </script>
+</body>
+</html>

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShaadiKart - Wedding Marketplace</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-    <script src="/_sdk/element_sdk.js"></script>
+    <script src="_sdk/element_sdk.js"></script>
 
     <!-- Firebase App (the core Firebase SDK) -->
     <script type="module">
@@ -56,21 +56,7 @@
         }
     </script>
 
-    <!-- EmailJS SDK -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script type="text/javascript">
-        (function () {
-            // ==========================================
-            // 2. EMAILJS CONFIGURATION (FILL THIS OUT)
-            // ==========================================
-            // To get this: Sign up at emailjs.com -> Account -> Public Key
-            emailjs.init({
-                publicKey: "5nEAvsbkPGa1PyUlq",
-            });
-            window.EMAILJS_SERVICE_ID = "service_nu5mx9m";
-            window.EMAILJS_TEMPLATE_ID = "template_tuuj3ha";
-        })();
-    </script>
+    <!-- Email notification is now handled by Firebase Cloud Functions on the backend -->
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -582,20 +568,16 @@
                         <button onclick="goToPage('landing')" class="text-red-600 font-bold hover:underline">Exit
                             Admin</button>
                     </div>
-                    <div class="card-service p-8 rounded-2xl">
-                        <h2 class="font-bold text-2xl text-gray-900 mb-6">Recent Bookings / Requests</h2>
-                        <div id="admin-bookings" class="space-y-4 max-h-[600px] overflow-y-auto">
-                            <p class="text-gray-600 text-center py-8">Loading bookings...</p>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            <!-- Hidden Footer Button to access Admin Panel -->
-            <div class="fixed bottom-0 right-0 p-2 opacity-10 hover:opacity-100 transition-opacity z-50">
-                <button onclick="goToPage('admin-panel'); loadAdminBookings();"
-                    class="text-xs text-gray-400 hover:text-red-600">Admin</button>
-            </div>
+            <!-- Footer Link to dedicated Admin Portal -->
+            <footer class="bg-white border-t border-gray-100 py-12 mt-20">
+                <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+                    <p class="text-gray-400 text-sm">© 2026 ShaadiKart. All rights reserved.</p>
+                    <a href="admin.html" class="text-xs text-gray-300 hover:text-red-500 transition font-medium">Admin Portal</a>
+                </div>
+            </footer>
             <script>
                 const defaultConfig = { site_name: "ShaadiKart", tagline: "Your wedding, perfected", hero_headline: "Discover premium vendors" };
                 let config = { ...defaultConfig };
@@ -912,27 +894,9 @@
                             });
                         }
 
-                        // 2. Send Email Notification via EmailJS
-                        if (window.EMAILJS_SERVICE_ID && window.EMAILJS_SERVICE_ID !== "YOUR_SERVICE_ID") {
-                            const templateParams = {
-                                customer_name: custName,
-                                customer_email: custEmail,
-                                customer_phone: custPhone,
-                                event_date: eventDate,
-                                event_location: location,
-                                grand_total: `₹${total.toLocaleString()}`,
-                                item_count: cart.length
-                            };
-
-                            await emailjs.send(
-                                window.EMAILJS_SERVICE_ID,
-                                window.EMAILJS_TEMPLATE_ID,
-                                templateParams
-                            );
-                            console.log("Email sent successfully!");
-                        } else {
-                            console.warn("EmailJS not configured. Skipping email notification.");
-                        }
+                        // 2. Email Notification
+                        // Note: Email notification is now handled automatically by a Firebase Cloud Function 
+                        // triggered by the creation of this document. No client-side code needed.
 
                         // Show confirmation page
                         document.getElementById('confirm-total').textContent = '₹' + total.toLocaleString();
@@ -946,59 +910,6 @@
                     }
                 }
 
-                async function loadAdminBookings() {
-                    const container = document.getElementById('admin-bookings');
-                    if (!window.firebaseDb) {
-                        container.innerHTML = '<p class="text-red-600 text-center py-8">Firebase is not configured yet.</p>';
-                        return;
-                    }
-
-                    try {
-                        const q = window.fbQuery(window.fbCollection(window.firebaseDb, "bookings"), window.fbOrderBy("createdAt", "desc"));
-                        const snapshot = await window.fbGetDocs(q);
-
-                        if (snapshot.empty) {
-                            container.innerHTML = '<p class="text-gray-600 text-center py-8">No bookings found</p>';
-                            return;
-                        }
-
-                        let html = '';
-                        snapshot.docs.forEach(doc => {
-                            const data = doc.data();
-                            const dateStr = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : "Just now";
-                            html += `
-                            <div class="border-2 border-gray-200 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition">
-                                <div class="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 class="font-bold text-lg text-gray-900">${data.customerName}</h3>
-                                        <p class="text-sm text-gray-500">${data.customerEmail} | ${data.customerPhone}</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="font-bold text-red-600 text-xl">₹${data.total.toLocaleString()}</p>
-                                        <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">${data.status}</span>
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-2 gap-4 mb-4 text-sm text-gray-700">
-                                    <p><strong>Date:</strong> ${data.eventDate}</p>
-                                    <p><strong>Location:</strong> ${data.location}</p>
-                                    <p class="col-span-2"><strong>Requests:</strong> ${data.specialRequests || 'None'}</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <p class="font-bold text-sm mb-2 text-gray-900">Services Ordered:</p>
-                                    <ul class="text-sm text-gray-700 list-disc list-inside">
-                                        ${data.items.map(item => `<li>${item.title} (₹${item.price.toLocaleString()})</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <p class="text-xs text-gray-400 mt-4 text-right">Submitted: ${dateStr}</p>
-                            </div>
-                            `;
-                        });
-                        container.innerHTML = html;
-                    } catch (error) {
-                        console.error("Error loading admin bookings", error);
-                        container.innerHTML = '<p class="text-red-600 text-center py-8">Error loading bookings</p>';
-                    }
-                }
 
                 initDataSDK();
                 renderServices();
